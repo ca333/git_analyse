@@ -38,20 +38,28 @@ cargo build --release
 cp target/release/git_analysis ~/.local/bin/
 ```
 
-## Usage
+## Setup
 
-1. Set the OPENAI_API_KEY environment variable to your OpenAI API key:
+1. Create a .env file in the project's root directory:
 
 ```bash
-export OPENAI_API_KEY="your_api_key_here"
+touch .env
 ```
 
-2. Run the tool with a GitHub or GitLab repository URL as a parameter:
+2. Add the following line to the .env file, replacing "your_api_key_here" with your OpenAI API key:
+
+```
+OPENAI_API_KEY=your_api_key_here
+````
+
+## Usage
+
+1. Run the tool with a GitHub or GitLab repository URL as a parameter:
 ```bash
 git_analysis https://github.com/username/repository.git
 ```
 
-3. Review the generated report for insights into the software's purpose, suspicious behavior, and potential malware detection.
+2. Review the generated report for insights into the software's purpose, suspicious behavior, and potential malware detection.
 
 ## Contributing
 
