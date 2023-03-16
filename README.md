@@ -50,7 +50,7 @@ touch .env
 
 ```
 OPENAI_API_KEY=your_api_key_here
-````
+```
 
 ## Usage
 
@@ -60,6 +60,13 @@ git_analyse https://github.com/username/repository.git
 ```
 
 2. Review the generated report for insights into the software's purpose, suspicious behavior, and potential malware detection.
+
+## Test
+
+Run the tests:
+```bash
+cargo test
+```
 
 ## Contributing
 
