@@ -4,6 +4,7 @@ use std::env;
 use zip::read::ZipArchive;
 use std::io::prelude::*;
 use std::io::Cursor;
+use dotenv::dotenv;
 
 //#[derive(Debug, Deserialize)]
 // The RepoTree struct is not used in the current implementation. It may be
@@ -21,6 +22,9 @@ struct OpenAiRequest<'a> {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Load environment variables from .env file
+    dotenv().ok();
+
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
         println!("Usage: cargo run <repository_url>");
@@ -35,6 +39,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         panic!("Invalid repository URL. Must be GitHub or GitLab.");
     };
+
+    println!("repourl: {repo_url}");
 
     let client = Client::builder()
         .default_headers(header::HeaderMap::from_iter(vec![
@@ -55,13 +61,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let code_chunks = split_code_into_chunks(&code, max_chars);
     let total_parts = code_chunks.len();
 
-    let openai_api_key = "YOUR_OPENAI_API_KEY";
+    let openai_api_key = env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY must be set in the .env file");
     let mut analysis_results = Vec::new();
 
     for (i, chunk) in code_chunks.into_iter().enumerate() {
         let prompt = format!("Analyze the following truncated code from the repository at {}. This is part {} of {}:\n\n```\n{}\n```\nDescribe what the software does, and if there's anything suspicious or potentially considered malware.", repo_url, i + 1, total_parts, chunk);
 
-        let openai_result = query_openai_gpt3(&client, openai_api_key, &prompt).await?;
+        let openai_result = query_openai_gpt3(&client, &openai_api_key, &prompt).await?;
         analysis_results.push(openai_result);
     }
 
@@ -94,6 +100,8 @@ async fn fetch_repo_zip(client: &Client, base_url: &str, username: &str, reponam
     } else {
         format!("{}/projects/{}/{}/repository/archive.zip", base_url, username, reponame)
     };
+
+    println!("repo2: {zip_url}");
 
     let resp = client.get(&zip_url).send().await?;
     let resp_status = resp.status(); // Store the response status before calling `bytes()`
