@@ -44,7 +44,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build()?;
 
     let (username, reponame) = parse_repo_url(repo_url)?;
-    let repo_zip = fetch_repo_zip(&client, base_url, &username, &reponame).await?;
+    let repo_zip = fetch_repo_zip(&client, &base_url, &username, &reponame).await.unwrap_or_else(|err| {
+        eprintln!("Error fetching repository archive: {}", err);
+        std::process::exit(1);
+    });    
     let code = download_and_extract_zip(&repo_zip)?;
 
     // Split the code into chunks to fit within the GPT-3 model's token limit
@@ -93,8 +96,14 @@ async fn fetch_repo_zip(client: &Client, base_url: &str, username: &str, reponam
     };
 
     let resp = client.get(&zip_url).send().await?;
+    let resp_status = resp.status(); // Store the response status before calling `bytes()`
     let bytes = resp.bytes().await?;
-    Ok(bytes.to_vec())
+
+    if resp_status.is_success() {
+        Ok(bytes.to_vec())
+    } else {
+        Err(format!("Failed to download archive: {}", resp_status).into())
+    }
 }
 
 async fn query_openai_gpt3(client: &Client, api_key: &str, prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
