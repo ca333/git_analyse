@@ -1,5 +1,5 @@
 use reqwest::{Client, header};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::env;
 use zip::read::ZipArchive;
 use std::io::prelude::*;
@@ -21,6 +21,9 @@ use std::collections::HashSet;
 // struct RepoInfo {
 //     default_branch: String,
 // }
+
+#[cfg(test)]
+mod tests;
 
 #[derive(Serialize)]
 struct OpenAiRequest<'a> {
@@ -99,14 +102,19 @@ async fn get_default_branch(client: &Client, repo_url: &str) -> Result<String, B
     };
 
     let resp = client.get(&api_url).send().await?;
-    if resp.status().is_success() {
-        let repo_info: serde_json::Value = resp.json().await?;
-        let default_branch = repo_info["default_branch"].as_str().unwrap_or("master").to_string();
+    let status = resp.status(); // Store the status before calling resp.text()
+
+    if status.is_success() {
+        let body = resp.text().await?;
+        let repo_info: serde_json::Value = serde_json::from_str(&body)?;
+        let default_branch = repo_info["default_branch"].as_str().unwrap_or("main").to_string();
         Ok(default_branch)
     } else {
-        Err(format!("Failed to fetch repository information: {}", resp.status()).into())
+        let body = resp.text().await?;
+        Err(format!("Failed to fetch repository information: {} - Response body: {}", status, body).into())
     }
 }
+
 
 fn parse_repo_url(repo_url: &str) -> Result<(String, String, Option<String>), Box<dyn std::error::Error>> {
     let mut parts = repo_url.split('/');
