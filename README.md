@@ -71,3 +71,12 @@ This project is licensed under the MIT License. See the LICENSE file for details
 
 ## Disclaimer
 This project was executed by OpenAI (GPT-4 language model), including this README.md
+
+## Known Issues / TODOS
+- fix gitlab binding
+- add multi-language model support
+- use gpt-4-32k model as default / https://platform.openai.com/docs/models/gpt-4
+- create dependency tree / scan subdependencies
+- generate threat model
+- generate PDF report
+- scan ref. CVE DBs API endpoint
