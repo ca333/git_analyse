@@ -1,6 +1,6 @@
-# Git Analysis
+# Git Analyse
 
-Git Analysis is a Rust-based command-line tool that analyzes a given GitHub or GitLab repository using OpenAI's GPT-3 model. The tool fetches the code from the default branch of the specified repository, processes it, and submits it to the GPT-3 API. It then generates a report on the purpose of the software, any suspicious behavior, and potential malware detection.
+`git_analyse` is a rust-based command-line tool that analyzes a given GitHub or GitLab repository using OpenAI's GPT-3 model. The tool fetches the code from the default branch of the specified repository, processes it, and submits it to the GPT-3 API. It then generates a report on the purpose of the software, any suspicious behavior, and potential malware detection.
 
 ## Features
 
