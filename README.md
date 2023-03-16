@@ -18,13 +18,13 @@ Git Analysis is a Rust-based command-line tool that analyzes a given GitHub or G
 1. Clone this repository:
 
 ```bash
-git clone https://github.com/your_username/git_analysis.git
+git clone https://github.com/your_username/git_analyse.git
 ```
 
-2. Change to the git_analysis directory:
+2. Change to the git_analyse directory:
 
 ```bash
-cd git_analysis
+cd git_analyse
 ```
 
 3. Build the project:
@@ -35,7 +35,7 @@ cargo build --release
 
 4. Copy the binary to a directory in your PATH:
 ```bash
-cp target/release/git_analysis ~/.local/bin/
+cp target/release/git_analyse ~/.local/bin/
 ```
 
 ## Setup
@@ -56,7 +56,7 @@ OPENAI_API_KEY=your_api_key_here
 
 1. Run the tool with a GitHub or GitLab repository URL as a parameter:
 ```bash
-git_analysis https://github.com/username/repository.git
+git_analyse https://github.com/username/repository.git
 ```
 
 2. Review the generated report for insights into the software's purpose, suspicious behavior, and potential malware detection.
