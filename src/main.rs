@@ -5,6 +5,7 @@ use zip::read::ZipArchive;
 use std::io::prelude::*;
 use std::io::Cursor;
 use dotenv::dotenv;
+use std::collections::HashSet;
 
 //#[derive(Debug, Deserialize)]
 // The RepoTree struct is not used in the current implementation. It may be
@@ -55,24 +56,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(1);
     });
 
-    let code = download_and_extract_zip(&repo_zip)?;
+    let (code, tech_stack) = download_and_extract_zip(&repo_zip)?;
 
-    let max_chars = 4096;
+    let max_chars = 8192; // Increase max_chars to 8192
+
     let code_chunks = split_code_into_chunks(&code, max_chars);
     let total_parts = code_chunks.len();
+
+    //DEBUG OUTPUT:
+    println!("Code Chunks:");
+    for (i, chunk) in code_chunks.iter().enumerate() {
+        println!("Part {} of {}:\n{}", i + 1, total_parts, chunk);
+    }
 
     let openai_api_key = env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY not found in .env");
 
     let mut analysis_results = Vec::new();
 
     for (i, chunk) in code_chunks.into_iter().enumerate() {
-        let prompt = format!("Analyze the following truncated code from the repository at {}. This is part {} of {}:\n\n```\n{}\n```\nDescribe what the software does, and if there's anything suspicious or potentially considered malware.", repo_url, i + 1, total_parts, chunk);
-
+        let prompt = format!("Analyze the following truncated code from the repository at {}. This is part {} of {}. The repository contains files with extensions: {:?}. Please provide an in-depth analysis of the code, its purpose, and if there's anything suspicious or potentially considered malware:\n\n```\n{}\n```\n", repo_url, i + 1, total_parts, tech_stack, chunk);
+        println!("Sending request to OpenAI API:");
+        println!("Prompt:\n{}", prompt);
         let openai_result = query_openai_gpt3(&client, &openai_api_key, &prompt).await?;
         analysis_results.push(openai_result);
     }
 
     println!("GPT-3 Analysis:");
+    println!("Detected Technology Stack: {:?}", tech_stack);
     for (i, result) in analysis_results.into_iter().enumerate() {
         println!("Part {} of {}: {}", i + 1, total_parts, result);
     }
@@ -118,26 +128,36 @@ async fn fetch_repo_zip(client: &Client, repo_url: &str, username: &str, reponam
     let resp = client.get(&zip_url).send().await?;
     if resp.status().is_success() {
         let bytes = resp.bytes().await?;
+        println!("Successfully downloaded archive from: {}", zip_url);
         Ok(bytes.to_vec())
     } else {
         Err(format!("Failed to download archive: {}", resp.status()).into())
     }
 }
 
-fn download_and_extract_zip(repo_zip: &[u8]) -> Result<String, Box<dyn std::error::Error>> {
+fn download_and_extract_zip(repo_zip: &[u8]) -> Result<(String, HashSet<String>), Box<dyn std::error::Error>> {
+    println!("Extracting ZIP archive...");
     let reader = Cursor::new(repo_zip);
     let mut zip = ZipArchive::new(reader)?;
 
     let mut code = String::new();
+    let mut tech_stack = HashSet::new();
     for i in 0..zip.len() {
         let mut file = zip.by_index(i)?;
-        if file.name().ends_with(".rs") {
+        if let Some(extension) = file_extension(&file.name()) {
+            tech_stack.insert(extension.to_string());
             let mut contents = String::new();
             file.read_to_string(&mut contents)?;
             code.push_str(&contents);
         }
+        println!("Processed file: {}", file.name());
     }
-    Ok(code)
+    println!("ZIP archive extraction completed.");
+    Ok((code, tech_stack))
+}
+
+fn file_extension(file_name: &str) -> Option<&str> {
+    file_name.split('.').last()
 }
 
 fn split_code_into_chunks(code: &str, max_chars: usize) -> Vec<String> {
@@ -155,9 +175,18 @@ fn split_code_into_chunks(code: &str, max_chars: usize) -> Vec<String> {
 }
 
 async fn query_openai_gpt3(client: &Client, api_key: &str, prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
-    let request = OpenAiRequest { prompt };
+    let request = serde_json::json!({
+        "model": "gpt-3.5-turbo",
+        "messages": [
+            {"role": "system", "content": "You are an AI language model that can analyze codebases and provide insights."},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.5,
+        "max_tokens": 100
+    });
+
     let response = client
-        .post("https://api.openai.com/v1/engines/davinci-codex/completions")
+        .post("https://api.openai.com/v1/chat/completions")
         .header(header::AUTHORIZATION, format!("Bearer {}", api_key))
         .header(header::CONTENT_TYPE, "application/json")
         .json(&request)
@@ -165,7 +194,19 @@ async fn query_openai_gpt3(client: &Client, api_key: &str, prompt: &str) -> Resu
         .await?;
 
     let response_text: serde_json::Value = response.json().await?;
-    let result = response_text["choices"][0]["text"].as_str().unwrap_or_default().trim().to_string();
+
+    // Debug output for the entire OpenAI API response
+    println!("OpenAI API response: {}", response_text);
+
+    // Check if the response contains an "error" key
+    if response_text.get("error").is_some() {
+        let error_message = response_text["error"]["message"].as_str().unwrap_or("Unknown error");
+        return Err(format!("OpenAI API error: {}", error_message).into());
+    }
+
+    let result = response_text["choices"][0]["message"]["content"].as_str().unwrap_or_default().trim().to_string();
 
     Ok(result)
 }
+
+
