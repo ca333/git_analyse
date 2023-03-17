@@ -79,6 +79,9 @@ This project is licensed under the MIT License. See the LICENSE file for details
 ## Disclaimer
 This project was executed by OpenAI (GPT-4 language model), including this README.md
 
+## Git Commit Contributors
+- [ozkanonur](https://github.com/ozkanonur)
+
 ## Known Issues / TODOS
 - fix gitlab binding
 - add multi-language model support
