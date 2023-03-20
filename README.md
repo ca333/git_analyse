@@ -80,6 +80,7 @@ This project is licensed under the MIT License. See the LICENSE file for details
 This project was executed by OpenAI (GPT-4 language model), including this README.md
 
 ## Git Commit Contributors
+- [tonymorony](https://github.com/tonymorony)
 - [shamardy](https://github.com/shamardy)
 - [ozkanonur](https://github.com/ozkanonur)
 
